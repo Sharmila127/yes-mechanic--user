@@ -1,0 +1,84 @@
+- name: Setup Complete DevOps Environment 
+hosts: all 
+become: yes 
+tasks: - name: Update apt cache 
+apt: 
+update_cache: yes - name: Install basic tools 
+apt: 
+name: 
+          - git 
+          - curl 
+          - unzip 
+          - wget 
+          - docker.io 
+          - openjdk-17-jdk 
+        state: present 
+ 
+    - name: Enable and start Docker 
+      systemd: 
+        name: docker 
+        enabled: yes 
+        state: started 
+ 
+    - name: Add Jenkins repo 
+      apt_key: 
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key 
+        state: present 
+ 
+    - name: Add Jenkins source list 
+      apt_repository: 
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/" 
+        state: present 
+ 
+    - name: Install Jenkins 
+      apt: 
+        name: jenkins 
+        state: present 
+        update_cache: yes 
+ 
+    - name: Start Jenkins 
+      service: 
+        name: jenkins 
+        enabled: yes 
+        state: started 
+ 
+    - name: Install SonarQube prerequisites 
+      apt: 
+        name: 
+          - unzip 
+          - fontconfig 
+        state: present 
+ 
+    - name: Download & extract SonarQube 
+      unarchive: 
+        src: 
+https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube
+10.4.1.88267.zip 
+        dest: /opt/ 
+        remote_src: yes 
+ 
+    - name: Move and rename SonarQube directory dynamically 
+      shell: | 
+        latest_dir=$(ls -d /opt/sonarqube-* | head -n 1) 
+        mv "$latest_dir" /opt/sonarqube 
+      args: 
+        executable: /bin/bash 
+ 
+    - name: Start SonarQube 
+      shell: | 
+        nohup /opt/sonarqube/bin/linux-x86-64/sonar.sh start & 
+      args: 
+        executable: /bin/bash 
+ 
+    - name: Install k3s (lightweight Kubernetes) 
+      shell: | 
+        curl -sfL https://get.k3s.io | sh - 
+      args: 
+        creates: /usr/local/bin/k3s 
+ 
+    - name: Install Prometheus 
+      shell: | 
+docker run -d \ --name prometheus \ -p 9090:9090 \ 
+prom/prometheus 
+args: 
+creates: /usr/bin/Prometheus
